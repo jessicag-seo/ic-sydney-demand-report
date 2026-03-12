@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>InterContinental Sydney | Search Demand Seasonality</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  :root {
+    --gold: #C5A258;
+    --gold-light: #D4B878;
+    --dark: #1A1A2E;
+    --darker: #12121F;
+    --card: #1E1E32;
+    --card-border: #2A2A44;
+    --text: #E8E8F0;
+    --text-muted: #9999B0;
+    --green: #4ECB71;
+    --red: #E74C5E;
+    --blue: #5B8DEF;
+    --purple: #9B6DFF;
+    --orange: #F5A623;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--darker);
+    color: var(--text);
+    line-height: 1.6;
+  }
+
+  .header {
+    background: linear-gradient(135deg, var(--dark) 0%, #1A1A35 100%);
+    border-bottom: 2px solid var(--gold);
+    padding: 32px 40px;
+  }
+
+  .header-inner {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  .header h1 {
+    font-size: 28px;
+    font-weight: 300;
+    letter-spacing: 2px;
+    color: var(--gold);
+    text-transform: uppercase;
+  }
+
+  .header h1 span {
+    display: block;
+    font-size: 14px;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+    margin-top: 4px;
+  }
+
+  .header-meta {
+    text-align: right;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  .header-meta strong {
+    color: var(--gold-light);
+  }
+
+  .container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 32px 40px;
+  }
+
+  /* Strategy Section */
+  .strategy-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  .strategy-card {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .strategy-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+  }
+
+  .strategy-card.current::before { background: var(--green); }
+  .strategy-card.excluded::before { background: var(--red); }
+  .strategy-card.opportunity::before { background: var(--gold); }
+  .strategy-card.test::before { background: var(--purple); }
+
+  .strategy-card .label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 8px;
+  }
+
+  .strategy-card.current .label { color: var(--green); }
+  .strategy-card.excluded .label { color: var(--red); }
+  .strategy-card.opportunity .label { color: var(--gold); }
+  .strategy-card.test .label { color: var(--purple); }
+
+  .strategy-card h3 {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+
+  .strategy-card p {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  /* Section titles */
+  .section-title {
+    font-size: 18px;
+    font-weight: 300;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin: 40px 0 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--card-border);
+  }
+
+  .section-title:first-of-type {
+    margin-top: 0;
+  }
+
+  /* KPI Row */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  .kpi {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+  }
+
+  .kpi .value {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--gold);
+  }
+
+  .kpi .label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  .kpi .sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  .kpi .change {
+    font-size: 13px;
+    margin-top: 4px;
+  }
+
+  .kpi .change.up { color: var(--green); }
+  .kpi .change.down { color: var(--red); }
+
+  /* Chart containers */
+  .chart-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 32px;
+  }
+
+  .chart-card {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    padding: 24px;
+  }
+
+  .chart-card.full {
+    grid-column: 1 / -1;
+  }
+
+  .chart-card h3 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  .chart-card .subtitle {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+  }
+
+  .chart-wrap {
+    position: relative;
+    height: 300px;
+  }
+
+  .chart-wrap.tall {
+    height: 400px;
+  }
+
+  /* Tables */
+  .table-card {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 24px;
+    overflow-x: auto;
+  }
+
+  .table-card h3 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 16px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  th {
+    text-align: left;
+    padding: 10px 12px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--card-border);
+    white-space: nowrap;
+  }
+
+  th.num { text-align: right; }
+
+  td {
+    padding: 9px 12px;
+    border-bottom: 1px solid rgba(42,42,68,0.5);
+    white-space: nowrap;
+  }
+
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+  tr.total td {
+    font-weight: 700;
+    border-top: 2px solid var(--gold);
+    color: var(--gold-light);
+  }
+
+  tr:hover td { background: rgba(197,162,88,0.04); }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .badge.peak { background: rgba(197,162,88,0.15); color: var(--gold); }
+  .badge.high { background: rgba(78,203,113,0.12); color: var(--green); }
+  .badge.mid { background: rgba(91,141,239,0.12); color: var(--blue); }
+  .badge.low { background: rgba(231,76,94,0.12); color: var(--red); }
+
+  .heat { font-weight: 600; }
+  .heat-5 { color: #FF6B6B; }
+  .heat-4 { color: var(--orange); }
+  .heat-3 { color: var(--gold); }
+  .heat-2 { color: var(--blue); }
+  .heat-1 { color: var(--text-muted); }
+
+  /* Insight callouts */
+  .insight-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 32px;
+  }
+
+  .insight {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-left: 3px solid var(--gold);
+    border-radius: 0 8px 8px 0;
+    padding: 20px 24px;
+  }
+
+  .insight h4 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gold);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .insight p {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+
+  .insight ul {
+    margin: 8px 0 0 16px;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  .insight ul li { margin-bottom: 4px; }
+
+  /* Recommendations */
+  .reco-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-bottom: 32px;
+  }
+
+  .reco {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    padding: 24px;
+    position: relative;
+  }
+
+  .reco .priority {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 10px;
+  }
+
+  .reco .priority.high { color: var(--orange); }
+  .reco .priority.medium { color: var(--blue); }
+
+  .reco h4 {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  .reco p {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin-bottom: 12px;
+  }
+
+  .reco .months {
+    font-size: 11px;
+    color: var(--gold);
+  }
+
+  .reco .volume {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  .footer {
+    text-align: center;
+    padding: 32px;
+    font-size: 12px;
+    color: var(--text-muted);
+    border-top: 1px solid var(--card-border);
+  }
+
+  .tab-nav {
+    display: flex;
+    gap: 2px;
+    margin-bottom: 0;
+  }
+
+  .tab-btn {
+    background: rgba(30,30,50,0.6);
+    border: 1px solid var(--card-border);
+    border-bottom: none;
+    color: var(--text-muted);
+    padding: 10px 20px;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    border-radius: 8px 8px 0 0;
+    transition: all 0.2s;
+  }
+
+  .tab-btn.active {
+    background: var(--card);
+    color: var(--gold);
+    border-color: var(--card-border);
+  }
+
+  .tab-content {
+    display: none;
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 0 8px 8px 8px;
+    padding: 24px;
+  }
+
+  .tab-content.active { display: block; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <h1>InterContinental Sydney
+      <span>Search Demand Seasonality & Paid Search Strategy</span>
+    </h1>
+    <div class="header-meta">
+      <strong>Data Period:</strong> Mar 2025 &ndash; Feb 2026<br>
+      <strong>Source:</strong> DataForSEO / Google Ads<br>
+      <strong>Markets:</strong> Australia & Global<br>
+      <strong>Prepared:</strong> March 2026
+    </div>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- Strategy Context -->
+  <div class="strategy-bar">
+    <div class="strategy-card current">
+      <div class="label">Current Approach</div>
+      <h3>Non-Branded, Domestic Only</h3>
+      <p>Paid search targets non-branded keywords in AU. Budget constraints limit international targeting. We own branded SERP real estate organically.</p>
+    </div>
+    <div class="strategy-card excluded">
+      <div class="label">Excluded Over Time</div>
+      <h3>Low-Converting Keywords</h3>
+      <p>Several non-branded terms have been paused over time due to poor conversion rates. Budget is reallocated to higher-performing terms only.</p>
+    </div>
+    <div class="strategy-card opportunity">
+      <div class="label">Opportunity</div>
+      <h3>Increase BOFU Budget</h3>
+      <p>Data shows significant demand spikes in Mar&ndash;Apr and Jul. A case exists for increased bottom-of-funnel spend in these peak windows.</p>
+    </div>
+    <div class="strategy-card test">
+      <div class="label">Test Hypothesis</div>
+      <h3>Branded &times; International</h3>
+      <p>Global branded volume is 35% above AU. Testing branded campaigns to international audiences in peak months (Mar&ndash;Apr, Oct) could unlock new demand.</p>
+    </div>
+  </div>
+
+  <!-- KPI Summary -->
+  <h2 class="section-title">Non-Branded Demand Overview (AU Target Market)</h2>
+
+  <div class="kpi-row">
+    <div class="kpi">
+      <div class="value">89,160</div>
+      <div class="label">Peak Month (Mar)</div>
+      <div class="change up">+142% vs trough</div>
+    </div>
+    <div class="kpi">
+      <div class="value">74,580</div>
+      <div class="label">2nd Peak (Apr)</div>
+      <div class="change up">+103% vs trough</div>
+    </div>
+    <div class="kpi">
+      <div class="value">36,810</div>
+      <div class="label">Trough (Jun)</div>
+      <div class="sub">Lowest demand month</div>
+    </div>
+    <div class="kpi">
+      <div class="value">45,550</div>
+      <div class="label">Summer Spike (Jan)</div>
+      <div class="change up">+24% vs trough</div>
+    </div>
+    <div class="kpi">
+      <div class="value">43,810</div>
+      <div class="label">School Hols (Jul)</div>
+      <div class="change up">+19% vs trough</div>
+    </div>
+  </div>
+
+  <!-- Main Charts -->
+  <div class="chart-row">
+    <div class="chart-card full">
+      <h3>Non-Branded Search Demand by Month</h3>
+      <div class="subtitle">AU domestic vs Global &mdash; the gap represents untapped international demand</div>
+      <div class="chart-wrap tall">
+        <canvas id="nbDemandChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="chart-row">
+    <div class="chart-card">
+      <h3>Non-Branded: Top Keywords by Month (AU)</h3>
+      <div class="subtitle">Stacked area showing keyword contribution to total demand</div>
+      <div class="chart-wrap tall">
+        <canvas id="nbStackedChart"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <h3>AU vs Global Uplift % by Month</h3>
+      <div class="subtitle">International demand sitting above domestic &mdash; currently untargeted</div>
+      <div class="chart-wrap tall">
+        <canvas id="upliftChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Non-Branded Month-by-Month Tables -->
+  <h2 class="section-title">Non-Branded Keywords &mdash; Monthly Breakdown</h2>
+
+  <div class="tab-nav" id="nbTabNav"></div>
+  <div id="nbTabContent"></div>
+
+  <!-- Branded Section -->
+  <h2 class="section-title">Branded Search &mdash; Not Currently Targeted (Organic Ownership)</h2>
+
+  <div class="insight-row">
+    <div class="insight">
+      <h4>Why We Don't Run Branded Paid</h4>
+      <p>InterContinental Sydney already dominates branded SERPs organically. With limited budget, every dollar is better spent on non-branded terms where we compete for visibility. Branded CPC is low ($1.55&ndash;$2.26) but the opportunity cost of diverting budget is too high.</p>
+    </div>
+    <div class="insight">
+      <h4>The International Branded Opportunity</h4>
+      <p>Global branded search is <strong>+35% above AU</strong> on average, and <strong>+55% in March</strong>. International travellers searching "intercontinental sydney" are high-intent bookers. A targeted test in peak months could capture incremental revenue without cannibalising organic.</p>
+      <ul>
+        <li><strong>Mar:</strong> 103,490 global vs 66,540 AU (+55%)</li>
+        <li><strong>Oct:</strong> 51,270 global vs 36,550 AU (+40%)</li>
+        <li><strong>Sep:</strong> 42,030 global vs 29,580 AU (+42%)</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="chart-row">
+    <div class="chart-card full">
+      <h3>Branded Search Demand &mdash; AU vs Global</h3>
+      <div class="subtitle">Gap between AU and Global = international demand currently going uncaptured</div>
+      <div class="chart-wrap">
+        <canvas id="brandedChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Branded Tables -->
+  <div class="tab-nav" id="brTabNav"></div>
+  <div id="brTabContent"></div>
+
+  <!-- Seasonal Campaign Overlay -->
+  <h2 class="section-title">Seasonal Campaign Windows & Activations</h2>
+
+  <div class="chart-row">
+    <div class="chart-card full">
+      <h3>Demand Calendar with Campaign Activation Overlay</h3>
+      <div class="subtitle">Non-branded AU demand mapped against known seasonal activations and recommended test windows</div>
+      <div class="chart-wrap tall">
+        <canvas id="calendarChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recommendations -->
+  <h2 class="section-title">Recommendations & Test Opportunities</h2>
+
+  <div class="reco-grid">
+    <div class="reco">
+      <div class="priority high">High Priority</div>
+      <h4>Scale Non-Branded in Mar&ndash;Apr</h4>
+      <p>Demand doubles in March. Increase budget and bid caps on converting non-branded terms during peak to capture maximum share of voice when intent is highest.</p>
+      <div class="months">Window: February &rarr; April ramp</div>
+      <div class="volume">Addressable: 89,160 (Mar) + 74,580 (Apr) = 163,740 searches/mo AU</div>
+    </div>
+    <div class="reco">
+      <div class="priority high">High Priority</div>
+      <h4>January Summer Burst</h4>
+      <p>January shows a strong secondary peak (45,550 AU). Align with NYE and summer holiday demand. Launch campaigns late December for January capture.</p>
+      <div class="months">Window: Late Dec &rarr; Jan</div>
+      <div class="volume">Addressable: 45,550 searches/mo AU</div>
+    </div>
+    <div class="reco">
+      <div class="priority high">High Priority</div>
+      <h4>July School Holiday Push</h4>
+      <p>July shows a notable uptick to 43,810 AU. Winter school holidays and Vivid Sydney drive demand. Increase bids on "hotel sydney harbour" and "5 star hotel sydney".</p>
+      <div class="months">Window: June &rarr; July</div>
+      <div class="volume">Addressable: 43,810 searches/mo AU</div>
+    </div>
+    <div class="reco">
+      <div class="priority medium">Test</div>
+      <h4>Branded International (Mar)</h4>
+      <p>Global branded is +55% above AU in March. Test branded campaigns targeting UK, US, and Asia-Pacific markets. "Intercontinental sydney" has 74K global searches in Mar vs 49K AU.</p>
+      <div class="months">Test Window: February &rarr; April</div>
+      <div class="volume">Incremental: ~37,000 international branded searches in Mar alone</div>
+    </div>
+    <div class="reco">
+      <div class="priority medium">Test</div>
+      <h4>Branded International (Oct)</h4>
+      <p>October shows the second-highest global uplift for branded (+40%). Spring in Sydney appeals to northern hemisphere travellers heading into their winter.</p>
+      <div class="months">Test Window: September &rarr; November</div>
+      <div class="volume">Incremental: ~14,700 international branded searches in Oct</div>
+    </div>
+    <div class="reco">
+      <div class="priority medium">Test</div>
+      <h4>Re-test Excluded Non-Branded</h4>
+      <p>Keywords excluded for poor conversion should be re-tested during peak months only (Mar&ndash;Apr). Higher intent during peak may shift conversion economics.</p>
+      <div class="months">Test Window: March &rarr; April only</div>
+      <div class="volume">Use limited daily budgets with conversion caps</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  InterContinental Sydney &mdash; Search Demand Seasonality Dashboard &mdash; Data: DataForSEO/Google Ads &mdash; Prepared March 2026
+</div>
+
+<script>
+// Data
+const months = ['Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb'];
+
+const nbAU = {
+  'hotel sydney harbour':        [27100,22200,18100,18100,22200,22200,18100,18100,18100,18100,22200,18100],
+  'best hotels sydney':          [14800,14800,5400,5400,5400,5400,5400,5400,4400,4400,5400,4400],
+  '5 star hotel sydney':         [12100,9900,3600,2900,3600,2900,2900,2900,2900,2900,3600,2900],
+  'five star hotel sydney':      [12100,9900,3600,2900,3600,2900,2900,2900,2900,2900,3600,2900],
+  'boutique hotel sydney':       [12100,8100,5400,4400,5400,5400,5400,5400,5400,5400,5400,5400],
+  'luxury hotel sydney':         [4400,3600,1300,1300,1300,1900,1600,1900,1900,1600,2400,1900],
+  'hotel near circular quay':    [3600,3600,1000,880,1300,1000,1000,1300,1000,1000,1600,1000],
+  'luxury accommodation sydney': [1000,880,390,320,320,260,320,260,320,320,390,320],
+  '5 star accommodation sydney': [720,480,170,140,170,140,170,210,170,110,170,140],
+  'hotel circular quay sydney':  [590,320,110,210,260,210,260,320,390,390,480,390],
+  'best luxury hotel sydney':    [390,590,210,170,170,170,140,170,140,140,170,170],
+  'luxury hotels sydney cbd':    [260,210,70,90,90,90,90,110,90,50,140,90],
+};
+
+const nbGlobal = {
+  'hotel sydney harbour':        [40500,33100,27100,22200,27100,33100,27100,27100,27100,27100,27100,27100],
+  'best hotels sydney':          [27100,22200,9900,8100,9900,9900,8100,9900,8100,8100,9900,8100],
+  '5 star hotel sydney':         [18100,14800,5400,5400,5400,5400,5400,5400,4400,4400,5400,4400],
+  'five star hotel sydney':      [18100,14800,5400,5400,5400,5400,5400,5400,4400,4400,5400,4400],
+  'boutique hotel sydney':       [14800,12100,8100,6600,8100,8100,8100,8100,6600,6600,8100,6600],
+  'luxury hotel sydney':         [8100,6600,2400,2900,3600,3600,2900,2900,3600,2900,4400,2900],
+  'hotel near circular quay':    [5400,4400,1600,1300,1600,1600,1600,1600,1300,1300,1900,1600],
+  'luxury accommodation sydney': [1300,880,480,390,390,320,320,320,390,320,390,390],
+  '5 star accommodation sydney': [880,590,170,170,170,170,170,210,170,110,210,170],
+  'hotel circular quay sydney':  [720,390,170,260,320,260,320,390,390,480,590,480],
+  'best luxury hotel sydney':    [1000,880,390,390,320,320,390,390,320,320,480,320],
+  'luxury hotels sydney cbd':    [320,210,70,90,110,90,110,140,90,70,170,90],
+};
+
+const brAU = {
+  'intercontinental sydney':           [49500,40500,22200,18100,27100,22200,18100,22200,22200,18100,22200,18100],
+  'intercontinental double bay':       [14800,9900,9900,9900,9900,9900,9900,12100,12100,9900,9900,9900],
+  'intercontinental sydney double bay':[1900,1300,1300,1000,1000,1600,1300,1900,1900,1300,1900,1300],
+  'intercontinental sydney cbd':       [170,110,140,110,210,110,170,210,170,140,140,210],
+  'intercontinental sydney hotel':     [170,110,140,90,140,170,110,140,170,140,170,170],
+};
+
+const brGlobal = {
+  'intercontinental sydney':           [74000,60500,33100,27100,33100,27100,27100,33100,27100,27100,27100,27100],
+  'intercontinental double bay':       [22200,12100,9900,9900,9900,9900,12100,14800,12100,9900,12100,9900],
+  'intercontinental sydney double bay':[6600,2400,2400,1900,1900,2400,2400,2900,2900,2400,2900,2400],
+  'intercontinental sydney cbd':       [210,140,170,140,260,110,170,210,210,140,170,210],
+  'intercontinental sydney hotel':     [480,320,260,210,320,320,260,260,390,260,320,320],
+};
+
+function sumByMonth(data) {
+  return months.map((_, i) => Object.values(data).reduce((sum, arr) => sum + arr[i], 0));
+}
+
+const nbAUTotals = sumByMonth(nbAU);
+const nbGlobalTotals = sumByMonth(nbGlobal);
+const brAUTotals = sumByMonth(brAU);
+const brGlobalTotals = sumByMonth(brGlobal);
+
+// Chart defaults
+Chart.defaults.color = '#9999B0';
+Chart.defaults.borderColor = 'rgba(42,42,68,0.5)';
+Chart.defaults.font.family = "'Segoe UI', -apple-system, sans-serif";
+
+// 1. Non-Branded Demand Chart
+new Chart(document.getElementById('nbDemandChart'), {
+  type: 'bar',
+  data: {
+    labels: months,
+    datasets: [
+      {
+        label: 'AU',
+        data: nbAUTotals,
+        backgroundColor: 'rgba(197,162,88,0.7)',
+        borderRadius: 4,
+        barPercentage: 0.7,
+        categoryPercentage: 0.7,
+      },
+      {
+        label: 'Global (incl. AU)',
+        data: nbGlobalTotals,
+        backgroundColor: 'rgba(91,141,239,0.4)',
+        borderRadius: 4,
+        barPercentage: 0.7,
+        categoryPercentage: 0.7,
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'top' },
+      tooltip: {
+        callbacks: {
+          afterBody: function(items) {
+            const i = items[0].dataIndex;
+            const pct = ((nbGlobalTotals[i] - nbAUTotals[i]) / nbAUTotals[i] * 100).toFixed(0);
+            return `International uplift: +${pct}%`;
+          }
+        }
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: { callback: v => v >= 1000 ? (v/1000) + 'k' : v },
+        grid: { color: 'rgba(42,42,68,0.4)' }
+      },
+      x: { grid: { display: false } }
+    }
+  }
+});
+
+// 2. Stacked Area - Top NB Keywords
+const topNBKeywords = ['hotel sydney harbour','best hotels sydney','5 star hotel sydney','boutique hotel sydney','luxury hotel sydney','hotel near circular quay'];
+const stackColors = ['rgba(197,162,88,0.6)','rgba(91,141,239,0.6)','rgba(155,109,255,0.5)','rgba(78,203,113,0.5)','rgba(245,166,35,0.5)','rgba(231,76,94,0.4)'];
+
+new Chart(document.getElementById('nbStackedChart'), {
+  type: 'line',
+  data: {
+    labels: months,
+    datasets: topNBKeywords.map((kw, idx) => ({
+      label: kw,
+      data: nbAU[kw],
+      fill: true,
+      backgroundColor: stackColors[idx],
+      borderColor: stackColors[idx].replace('0.6','1').replace('0.5','1').replace('0.4','1'),
+      borderWidth: 1.5,
+      tension: 0.3,
+      pointRadius: 2,
+    }))
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } },
+    },
+    scales: {
+      y: {
+        stacked: true,
+        beginAtZero: true,
+        ticks: { callback: v => v >= 1000 ? (v/1000) + 'k' : v },
+        grid: { color: 'rgba(42,42,68,0.4)' }
+      },
+      x: { grid: { display: false } }
+    }
+  }
+});
+
+// 3. Uplift Chart
+const nbUplift = months.map((_, i) => ((nbGlobalTotals[i] - nbAUTotals[i]) / nbAUTotals[i] * 100).toFixed(1));
+const brUplift = months.map((_, i) => ((brGlobalTotals[i] - brAUTotals[i]) / brAUTotals[i] * 100).toFixed(1));
+
+new Chart(document.getElementById('upliftChart'), {
+  type: 'line',
+  data: {
+    labels: months,
+    datasets: [
+      {
+        label: 'Non-Branded Uplift %',
+        data: nbUplift,
+        borderColor: 'rgba(197,162,88,1)',
+        backgroundColor: 'rgba(197,162,88,0.1)',
+        fill: true,
+        tension: 0.3,
+        pointRadius: 4,
+        pointBackgroundColor: 'rgba(197,162,88,1)',
+      },
+      {
+        label: 'Branded Uplift %',
+        data: brUplift,
+        borderColor: 'rgba(155,109,255,1)',
+        backgroundColor: 'rgba(155,109,255,0.1)',
+        fill: true,
+        tension: 0.3,
+        pointRadius: 4,
+        pointBackgroundColor: 'rgba(155,109,255,1)',
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'top' },
+      tooltip: { callbacks: { label: item => item.dataset.label + ': +' + item.raw + '%' } }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: { callback: v => '+' + v + '%' },
+        grid: { color: 'rgba(42,42,68,0.4)' }
+      },
+      x: { grid: { display: false } }
+    }
+  }
+});
+
+// 4. Branded Chart
+new Chart(document.getElementById('brandedChart'), {
+  type: 'line',
+  data: {
+    labels: months,
+    datasets: [
+      {
+        label: 'Global',
+        data: brGlobalTotals,
+        borderColor: 'rgba(155,109,255,1)',
+        backgroundColor: 'rgba(155,109,255,0.15)',
+        fill: true,
+        tension: 0.3,
+        pointRadius: 4,
+        borderWidth: 2,
+      },
+      {
+        label: 'AU',
+        data: brAUTotals,
+        borderColor: 'rgba(197,162,88,1)',
+        backgroundColor: 'rgba(197,162,88,0.15)',
+        fill: true,
+        tension: 0.3,
+        pointRadius: 4,
+        borderWidth: 2,
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'top' },
+      annotation: {}
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: { callback: v => v >= 1000 ? (v/1000) + 'k' : v },
+        grid: { color: 'rgba(42,42,68,0.4)' }
+      },
+      x: { grid: { display: false } }
+    }
+  }
+});
+
+// 5. Calendar Chart with annotations
+new Chart(document.getElementById('calendarChart'), {
+  type: 'bar',
+  data: {
+    labels: months,
+    datasets: [
+      {
+        label: 'Non-Branded AU Demand',
+        data: nbAUTotals,
+        backgroundColor: months.map((m) => {
+          if (m === 'Mar' || m === 'Apr') return 'rgba(197,162,88,0.8)';
+          if (m === 'Jan' || m === 'Jul') return 'rgba(78,203,113,0.6)';
+          return 'rgba(91,141,239,0.4)';
+        }),
+        borderRadius: 4,
+        barPercentage: 0.6,
+      }
+    ]
+  },
+  plugins: [{
+    id: 'annotations',
+    afterDraw: function(chart) {
+      const ctx = chart.ctx;
+      const xAxis = chart.scales.x;
+      const yAxis = chart.scales.y;
+
+      const annotations = {
+        0: {label: 'PEAK SEASON', sub: 'Easter + Autumn travel', color: '#C5A258'},
+        1: {label: 'PEAK SEASON', sub: 'Easter + School hols', color: '#C5A258'},
+        4: {label: 'VIVID SYDNEY', sub: 'Seasonal activation', color: '#4ECB71'},
+        5: {label: 'MID-YEAR', sub: 'Vivid tail + Winter', color: '#5B8DEF'},
+        10: {label: 'NYE / SUMMER', sub: 'Holiday demand spike', color: '#4ECB71'},
+        11: {label: 'RECOVERY', sub: 'Post-summer lull', color: '#5B8DEF'},
+      };
+
+      Object.entries(annotations).forEach(([idx, ann]) => {
+        const x = xAxis.getPixelForTick(parseInt(idx));
+        const y = yAxis.getPixelForValue(nbAUTotals[parseInt(idx)]);
+
+        ctx.save();
+        ctx.fillStyle = ann.color;
+        ctx.font = 'bold 9px Segoe UI';
+        ctx.textAlign = 'center';
+        ctx.fillText(ann.label, x, y - 22);
+        ctx.fillStyle = '#9999B0';
+        ctx.font = '9px Segoe UI';
+        ctx.fillText(ann.sub, x, y - 10);
+        ctx.restore();
+      });
+    }
+  }],
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: { callback: v => v >= 1000 ? (v/1000) + 'k' : v },
+        grid: { color: 'rgba(42,42,68,0.4)' },
+        max: 110000,
+      },
+      x: { grid: { display: false } }
+    }
+  }
+});
+
+// Build monthly tables
+function buildMonthlyTabs(containerId, navId, auData, globalData, type) {
+  const nav = document.getElementById(navId);
+  const container = document.getElementById(containerId);
+  const monthOrder = [3,4,5,6,7,8,9,10,11,12,1,2];
+  const monthNames = {1:'January',2:'February',3:'March',4:'April',5:'May',6:'June',7:'July',8:'August',9:'September',10:'October',11:'November',12:'December'};
+  const monthYears = {3:'2025',4:'2025',5:'2025',6:'2025',7:'2025',8:'2025',9:'2025',10:'2025',11:'2025',12:'2025',1:'2026',2:'2026'};
+
+  const keywords = Object.keys(auData);
+  const globalLookup = globalData;
+
+  monthOrder.forEach((m, idx) => {
+    const mLabel = months[idx];
+    const btn = document.createElement('button');
+    btn.className = 'tab-btn' + (idx === 0 ? ' active' : '');
+    btn.textContent = mLabel;
+    btn.onclick = () => {
+      nav.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      container.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      document.getElementById(`${type}-month-${m}`).classList.add('active');
+    };
+    nav.appendChild(btn);
+
+    const panel = document.createElement('div');
+    panel.className = 'tab-content' + (idx === 0 ? ' active' : '');
+    panel.id = `${type}-month-${m}`;
+
+    // Sort keywords by AU volume descending for this month
+    const sorted = [...keywords].sort((a, b) => (auData[b][idx] || 0) - (auData[a][idx] || 0));
+
+    let auTotal = 0, glTotal = 0;
+    let rows = '';
+    sorted.forEach(kw => {
+      const auVol = auData[kw][idx] || 0;
+      const glVol = globalLookup[kw] ? (globalLookup[kw][idx] || 0) : 0;
+      const intl = glVol - auVol;
+      const uplift = auVol > 0 ? ((intl / auVol) * 100).toFixed(0) : '-';
+      auTotal += auVol;
+      glTotal += glVol;
+
+      // Heat class
+      const maxAU = Math.max(...auData[kw]);
+      const ratio = maxAU > 0 ? auVol / maxAU : 0;
+      let heat = 'heat-1';
+      if (ratio >= 0.9) heat = 'heat-5';
+      else if (ratio >= 0.7) heat = 'heat-4';
+      else if (ratio >= 0.5) heat = 'heat-3';
+      else if (ratio >= 0.3) heat = 'heat-2';
+
+      rows += `<tr>
+        <td>${kw}</td>
+        <td class="num heat ${heat}">${auVol.toLocaleString()}</td>
+        <td class="num">${glVol.toLocaleString()}</td>
+        <td class="num">${intl.toLocaleString()}</td>
+        <td class="num">${uplift === '-' ? '-' : '+' + uplift + '%'}</td>
+      </tr>`;
+    });
+
+    const totalIntl = glTotal - auTotal;
+    const totalUplift = auTotal > 0 ? ((totalIntl / auTotal) * 100).toFixed(0) : '-';
+
+    panel.innerHTML = `
+      <h3>${monthNames[m]} ${monthYears[m]}</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Keyword</th>
+            <th class="num">AU</th>
+            <th class="num">Global</th>
+            <th class="num">International</th>
+            <th class="num">Uplift</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows}
+          <tr class="total">
+            <td>TOTAL</td>
+            <td class="num">${auTotal.toLocaleString()}</td>
+            <td class="num">${glTotal.toLocaleString()}</td>
+            <td class="num">${totalIntl.toLocaleString()}</td>
+            <td class="num">+${totalUplift}%</td>
+          </tr>
+        </tbody>
+      </table>
+    `;
+    container.appendChild(panel);
+  });
+}
+
+buildMonthlyTabs('nbTabContent', 'nbTabNav', nbAU, nbGlobal, 'nb');
+buildMonthlyTabs('brTabContent', 'brTabNav', brAU, brGlobal, 'br');
+</script>
+
+</body>
+</html>
